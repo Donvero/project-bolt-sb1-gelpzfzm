@@ -1,0 +1,578 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Typography, 
+  Paper, 
+  Grid, 
+  Card, 
+  CardContent, 
+  CardHeader,
+  Divider,
+  Chip,
+  Button,
+  IconButton,
+  Badge,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  Avatar,
+  Tooltip,
+  LinearProgress,
+  Alert,
+  Collapse
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
+import { 
+  NotificationsActive as AlertIcon,
+  Error as ErrorIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
+  CheckCircle as SuccessIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon,
+  MoreVert as MoreIcon,
+  ArrowForward as ArrowForwardIcon,
+  AccountBalance as AccountBalanceIcon,
+  Receipt as ReceiptIcon,
+  AttachMoney as MoneyIcon,
+  Schedule as ScheduleIcon
+} from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
+
+// Import services and stores
+import { useAuthStore } from '../store/authStore';
+import { useComplianceStore } from '../store/complianceStore';
+import { formatCurrency, formatDate, calculatePercentage } from '../utils/helpers';
+
+// Create a styled Paper component for better shadow and hover effect
+const EnhancedPaper = styled(Paper)(({ theme }) => ({
+  height: '100%',
+  transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: theme.shadows[8]
+  },
+  display: 'flex',
+  flexDirection: 'column'
+}));
+
+// Create a styled alert badge component
+const AlertBadge = styled(Badge)(({ theme }) => ({
+  '& .MuiBadge-badge': {
+    backgroundColor: theme.palette.error.main,
+    color: theme.palette.error.contrastText,
+    fontSize: 10,
+    height: 20,
+    width: 20,
+    borderRadius: 10
+  }
+}));
+
+// ComplianceDashboard component for the Compliance monitoring page
+const CompliancePage = () => {
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const complianceStore = useComplianceStore();
+  
+  const [showWelcome, setShowWelcome] = useState(true);
+  
+  // Initialize data
+  useEffect(() => {
+    complianceStore.initialize();
+  }, [complianceStore]);
+  
+  // Generate chart data from alerts
+  const alertsByPriority = [
+    { name: 'Critical', value: 2, color: theme.palette.error.main },
+    { name: 'High', value: 2, color: theme.palette.warning.main },
+    { name: 'Medium', value: 1, color: theme.palette.info.main },
+    { name: 'Low', value: 1, color: theme.palette.success.main },
+  ];
+  
+  // Compliance status summary
+  const complianceSummary = {
+    total: complianceStore.complianceIssues.length,
+    critical: complianceStore.complianceIssues.filter(issue => issue.severity === 'critical').length,
+    high: complianceStore.complianceIssues.filter(issue => issue.severity === 'high').length,
+    medium: complianceStore.complianceIssues.filter(issue => issue.severity === 'medium').length,
+    open: complianceStore.complianceIssues.filter(issue => issue.status === 'open').length,
+    inProgress: complianceStore.complianceIssues.filter(issue => issue.status === 'in-progress').length,
+    resolved: complianceStore.complianceIssues.filter(issue => issue.status === 'resolved').length
+  };
+  
+  // Compliance by department
+  const complianceByDepartment = [
+    { name: 'Finance', compliant: 85, nonCompliant: 15 },
+    { name: 'Information Technology', compliant: 90, nonCompliant: 10 },
+    { name: 'Public Works', compliant: 75, nonCompliant: 25 },
+    { name: 'Administration', compliant: 95, nonCompliant: 5 },
+  ];
+  
+  // Transaction monitoring data
+  const transactionSummary = {
+    total: complianceStore.transactions.length,
+    completed: complianceStore.transactions.filter(t => t.status === 'completed').length,
+    pending: complianceStore.transactions.filter(t => t.status === 'pending').length,
+    totalAmount: complianceStore.transactions.reduce((sum, t) => sum + t.amount, 0),
+    pendingAmount: complianceStore.transactions.filter(t => t.status === 'pending')
+      .reduce((sum, t) => sum + t.amount, 0)
+  };
+  
+  // Get recent alerts
+  const recentAlerts = complianceStore.alerts.slice(0, 5);
+
+  return (
+    <Box sx={{ flexGrow: 1, p: 3 }}>
+      {/* Welcome Alert */}
+      <Collapse in={showWelcome}>
+        <Alert 
+          severity="info" 
+          sx={{ 
+            mb: 3, 
+            borderRadius: 3,
+            background: 'rgba(255,255,255,0.85)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            boxShadow: '0 8px 32px 0 rgba(25, 118, 210, 0.10)',
+            border: '1px solid rgba(25, 118, 210, 0.08)'
+          }}
+          action={
+            <Button 
+              color="primary" 
+              size="small" 
+              onClick={() => setShowWelcome(false)}
+              sx={{
+                fontWeight: 700,
+                borderRadius: 2,
+                background: 'linear-gradient(135deg, #1976d2 0%, #00acc1 100%)',
+                color: '#fff',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #00acc1 0%, #1976d2 100%)',
+                  transform: 'translateY(-2px)',
+                }
+              }}
+            >
+              DISMISS
+            </Button>
+          }
+        >
+          <Typography variant="h6" component="div" sx={{ fontWeight: 700, mb: 1 }}>
+            Welcome to the Compliance Monitoring Dashboard!
+          </Typography>
+          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+            This dashboard provides real-time visibility into your compliance status, alerts, and transaction monitoring.
+            MFMA and PFMA regulations are automatically monitored.
+          </Typography>
+        </Alert>
+      </Collapse>
+      
+      {/* Page Title */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h2" component="h1" gutterBottom sx={{ fontWeight: 900, letterSpacing: '-0.03em', color: 'primary.main', textShadow: '0 2px 8px rgba(25, 118, 210, 0.10)' }}>
+          Compliance Monitoring
+        </Typography>
+        <AlertBadge badgeContent={complianceStore.unreadAlertsCount} color="error">
+          <Button 
+            variant="contained" 
+            color="primary" 
+            startIcon={<AlertIcon />}
+            onClick={() => navigate('/alerts')}
+            sx={{
+              fontWeight: 700,
+              fontSize: 18,
+              borderRadius: 3,
+              boxShadow: '0 4px 16px 0 rgba(25, 118, 210, 0.10)',
+              background: 'linear-gradient(135deg, #1976d2 0%, #00acc1 100%)',
+              color: '#fff',
+              transition: 'all 0.2s cubic-bezier(.4,2,.3,1)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #00acc1 0%, #1976d2 100%)',
+                boxShadow: '0 8px 32px 0 rgba(0, 172, 193, 0.10)',
+                transform: 'translateY(-2px) scale(1.03)',
+              }
+            }}
+          >
+            View Alerts
+          </Button>
+        </AlertBadge>
+      </Box>
+      
+      {/* Summary Stats Cards */}
+      <Grid container spacing={3} mb={3}>
+        <Grid item xs={12} md={3}>
+          <EnhancedPaper sx={{
+            borderRadius: 4,
+            background: 'rgba(255,255,255,0.85)',
+            boxShadow: '0 8px 32px 0 rgba(25, 118, 210, 0.10)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid rgba(25, 118, 210, 0.08)',
+            transition: 'all 0.2s cubic-bezier(.4,2,.3,1)',
+            '&:hover': {
+              boxShadow: '0 16px 48px 0 rgba(0, 172, 193, 0.15)',
+              transform: 'translateY(-4px) scale(1.02)',
+            },
+          }}>
+            <Box p={2} display="flex" alignItems="center">
+              <Avatar sx={{ bgcolor: theme.palette.primary.main, mr: 2 }}>
+                <ErrorIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="body2" color="textSecondary">
+                  Compliance Issues
+                </Typography>
+                <Typography variant="h5" component="div">
+                  {complianceSummary.total}
+                </Typography>
+              </Box>
+              <Box ml="auto" display="flex" flexDirection="column" alignItems="flex-end">
+                <Chip 
+                  label={`${complianceSummary.open} Open`}
+                  size="small"
+                  color="error"
+                  sx={{ mb: 0.5 }}
+                />
+                <Chip 
+                  label={`${complianceSummary.resolved} Resolved`}
+                  size="small"
+                  color="success"
+                />
+              </Box>
+            </Box>
+          </EnhancedPaper>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <EnhancedPaper sx={{
+            borderRadius: 4,
+            background: 'rgba(255,255,255,0.85)',
+            boxShadow: '0 8px 32px 0 rgba(25, 118, 210, 0.10)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid rgba(25, 118, 210, 0.08)',
+            transition: 'all 0.2s cubic-bezier(.4,2,.3,1)',
+            '&:hover': {
+              boxShadow: '0 16px 48px 0 rgba(0, 172, 193, 0.15)',
+              transform: 'translateY(-4px) scale(1.02)',
+            },
+          }}>
+            <Box p={2} display="flex" alignItems="center">
+              <Avatar sx={{ bgcolor: theme.palette.warning.main, mr: 2 }}>
+                <WarningIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="body2" color="textSecondary">
+                  Detected Anomalies
+                </Typography>
+                <Typography variant="h5" component="div">
+                  {complianceStore.anomalies.length}
+                </Typography>
+              </Box>
+              <Box ml="auto" display="flex" flexDirection="column" alignItems="flex-end">
+                <Chip 
+                  label={`${complianceStore.anomalies.filter(a => a.status === 'unreviewed').length} Unreviewed`}
+                  size="small"
+                  color="warning"
+                  sx={{ mb: 0.5 }}
+                />
+                <Chip 
+                  label={`${complianceStore.anomalies.filter(a => a.status === 'flagged').length} Flagged`}
+                  size="small"
+                  color="error"
+                />
+              </Box>
+            </Box>
+          </EnhancedPaper>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <EnhancedPaper sx={{
+            borderRadius: 4,
+            background: 'rgba(255,255,255,0.85)',
+            boxShadow: '0 8px 32px 0 rgba(25, 118, 210, 0.10)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid rgba(25, 118, 210, 0.08)',
+            transition: 'all 0.2s cubic-bezier(.4,2,.3,1)',
+            '&:hover': {
+              boxShadow: '0 16px 48px 0 rgba(0, 172, 193, 0.15)',
+              transform: 'translateY(-4px) scale(1.02)',
+            },
+          }}>
+            <Box p={2} display="flex" alignItems="center">
+              <Avatar sx={{ bgcolor: theme.palette.info.main, mr: 2 }}>
+                <ReceiptIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="body2" color="textSecondary">
+                  Transactions Monitored
+                </Typography>
+                <Typography variant="h5" component="div">
+                  {transactionSummary.total}
+                </Typography>
+              </Box>
+              <Box ml="auto" display="flex" flexDirection="column" alignItems="flex-end">
+                <Chip 
+                  label={`${transactionSummary.completed} Completed`}
+                  size="small"
+                  color="success"
+                  sx={{ mb: 0.5 }}
+                />
+                <Chip 
+                  label={`${transactionSummary.pending} Pending`}
+                  size="small"
+                  color="info"
+                />
+              </Box>
+            </Box>
+          </EnhancedPaper>
+        </Grid>
+        
+        <Grid item xs={12} md={3}>
+          <EnhancedPaper sx={{
+            borderRadius: 4,
+            background: 'rgba(255,255,255,0.85)',
+            boxShadow: '0 8px 32px 0 rgba(25, 118, 210, 0.10)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            border: '1px solid rgba(25, 118, 210, 0.08)',
+            transition: 'all 0.2s cubic-bezier(.4,2,.3,1)',
+            '&:hover': {
+              boxShadow: '0 16px 48px 0 rgba(0, 172, 193, 0.15)',
+              transform: 'translateY(-4px) scale(1.02)',
+            },
+          }}>
+            <Box p={2} display="flex" alignItems="center">
+              <Avatar sx={{ bgcolor: theme.palette.success.dark, mr: 2 }}>
+                <MoneyIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="body2" color="textSecondary">
+                  Total Transaction Value
+                </Typography>
+                <Typography variant="h5" component="div">
+                  {formatCurrency(transactionSummary.totalAmount)}
+                </Typography>
+              </Box>
+              <Box ml="auto" display="flex" flexDirection="column" alignItems="flex-end">
+                <Typography variant="caption" color="textSecondary">
+                  Pending
+                </Typography>
+                <Typography variant="body2" fontWeight="bold">
+                  {formatCurrency(transactionSummary.pendingAmount)}
+                </Typography>
+              </Box>
+            </Box>
+          </EnhancedPaper>
+        </Grid>
+      </Grid>
+      
+      {/* Main Content */}
+      <Grid container spacing={3}>
+        {/* Compliance Status Card */}
+        <Grid item xs={12} md={6}>
+          <EnhancedPaper>
+            <CardHeader 
+              title="Compliance Status" 
+              action={
+                <Button 
+                  size="small" 
+                  endIcon={<ArrowForwardIcon />}
+                  onClick={() => navigate('/compliance/issues')}
+                >
+                  View All
+                </Button>
+              }
+            />
+            <Divider />
+            <CardContent>
+              {complianceSummary.total === 0 ? (
+                <Alert severity="success">
+                  No compliance issues detected at this time.
+                </Alert>
+              ) : (
+                <>
+                  <Box mb={3}>
+                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                      Issue Severity
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={3}>
+                        <Box display="flex" flexDirection="column" alignItems="center">
+                          <Avatar sx={{ bgcolor: theme.palette.error.main, mb: 1, width: 40, height: 40 }}>
+                            {complianceSummary.critical}
+                          </Avatar>
+                          <Typography variant="body2">Critical</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Box display="flex" flexDirection="column" alignItems="center">
+                          <Avatar sx={{ bgcolor: theme.palette.warning.main, mb: 1, width: 40, height: 40 }}>
+                            {complianceSummary.high}
+                          </Avatar>
+                          <Typography variant="body2">High</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Box display="flex" flexDirection="column" alignItems="center">
+                          <Avatar sx={{ bgcolor: theme.palette.info.main, mb: 1, width: 40, height: 40 }}>
+                            {complianceSummary.medium}
+                          </Avatar>
+                          <Typography variant="body2">Medium</Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={3}>
+                        <Box display="flex" flexDirection="column" alignItems="center">
+                          <Avatar sx={{ bgcolor: theme.palette.success.main, mb: 1, width: 40, height: 40 }}>
+                            {complianceSummary.total - complianceSummary.critical - complianceSummary.high - complianceSummary.medium}
+                          </Avatar>
+                          <Typography variant="body2">Low</Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                  
+                  <Typography variant="body2" color="textSecondary" gutterBottom>
+                    Departmental Compliance
+                  </Typography>
+                  {complianceByDepartment.map((dept) => (
+                    <Box key={dept.name} mb={2}>
+                      <Box display="flex" justifyContent="space-between" mb={0.5}>
+                        <Typography variant="body2">{dept.name}</Typography>
+                        <Typography variant="body2">{dept.compliant}% Compliant</Typography>
+                      </Box>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={dept.compliant} 
+                        sx={{ 
+                          height: 8, 
+                          borderRadius: 4,
+                          backgroundColor: theme.palette.error.light,
+                          '& .MuiLinearProgress-bar': {
+                            backgroundColor: dept.compliant > 90 
+                              ? theme.palette.success.main 
+                              : dept.compliant > 80 
+                                ? theme.palette.info.main 
+                                : theme.palette.warning.main
+                          }
+                        }}
+                      />
+                    </Box>
+                  ))}
+                </>
+              )}
+            </CardContent>
+          </EnhancedPaper>
+        </Grid>
+        
+        {/* Recent Alerts Card */}
+        <Grid item xs={12} md={6}>
+          <EnhancedPaper>
+            <CardHeader 
+              title="Recent Alerts" 
+              action={
+                <Button 
+                  size="small" 
+                  endIcon={<ArrowForwardIcon />}
+                  onClick={() => navigate('/alerts')}
+                >
+                  View All
+                </Button>
+              }
+            />
+            <Divider />
+            <CardContent sx={{ pb: 0 }}>
+              {recentAlerts.length === 0 ? (
+                <Alert severity="success">
+                  No alerts to display at this time.
+                </Alert>
+              ) : (
+                <List>
+                  {recentAlerts.map((alert) => (
+                    <React.Fragment key={alert.id}>
+                      <ListItem alignItems="flex-start" sx={{ px: 0 }}>
+                        <ListItemIcon>
+                          {alert.priority === 'critical' && <ErrorIcon color="error" />}
+                          {alert.priority === 'high' && <WarningIcon color="warning" />}
+                          {alert.priority === 'medium' && <InfoIcon color="info" />}
+                          {alert.priority === 'low' && <SuccessIcon color="success" />}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Typography variant="subtitle2" color={alert.read ? 'textPrimary' : 'primary'}>
+                              {alert.title}
+                              {!alert.read && (
+                                <Chip 
+                                  label="New" 
+                                  size="small" 
+                                  color="error" 
+                                  sx={{ ml: 1, height: 20 }} 
+                                />
+                              )}
+                            </Typography>
+                          }
+                          secondary={
+                            <>
+                              <Typography variant="body2" color="textSecondary" component="span">
+                                {alert.message}
+                              </Typography>
+                              <Box display="flex" alignItems="center" mt={0.5}>
+                                <ScheduleIcon fontSize="small" sx={{ mr: 0.5, fontSize: 14 }} />
+                                <Typography variant="caption" color="textSecondary">
+                                  {formatDate(alert.timestamp)}
+                                </Typography>
+                              </Box>
+                            </>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <Tooltip title="View Details">
+                            <IconButton 
+                              edge="end" 
+                              size="small"
+                              onClick={() => navigate(`/alerts/${alert.id}`)}
+                            >
+                              <ArrowForwardIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                      <Divider component="li" />
+                    </React.Fragment>
+                  ))}
+                </List>
+              )}
+            </CardContent>
+          </EnhancedPaper>
+        </Grid>
+        
+        {/* Compliance Insights Card */}
+        <Grid item xs={12}>
+          <EnhancedPaper>
+            <CardHeader 
+              title="Compliance Insights" 
+              subheader="Key metrics and recommendations for improving compliance"
+            />
+            <Divider />
+            <CardContent>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="subtitle1" gutterBottom>
+                      <InfoIcon color="primary" sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      MFMA Compliance
+                    </Typography>
+                    <Box mt={2}>
+                      <Box display="flex" justifyContent="space-between" mb={0.5}>
+                        <Typography variant="body2">Supply Chain Management</Typography>
+                        <Typography variant="body2">82%</Typography>
+                      </Box>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={82}
+                        sx={{ mb: 2 }}
+                      />

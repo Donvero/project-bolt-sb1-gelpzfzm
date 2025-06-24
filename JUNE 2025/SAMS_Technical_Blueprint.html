@@ -1,0 +1,434 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Fana S.Q Mgengo">
+    <title>SAMS™ Smart Audit Management System - Technical Blueprint & Developer Guide</title>
+    <style>
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            line-height: 1.8;
+            color: #2a2a2a;
+            background: linear-gradient(to bottom, #f8f1e9, #f4e9d8);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 960px;
+            margin: 50px auto;
+            padding: 30px;
+            background-color: #ffffff;
+            border: 1px solid #d4af37;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        h1 {
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 3em;
+            color: #1a252f;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2em;
+            color: #1a252f;
+            border-bottom: 2px solid #d4af37;
+            padding-bottom: 8px;
+            margin-top: 50px;
+        }
+        h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5em;
+            color: #3c4a5a;
+            margin-top: 30px;
+        }
+        p {
+            font-size: 1.15em;
+            margin: 12px 0;
+        }
+        ul, ol {
+            margin-left: 25px;
+            font-size: 1.15em;
+        }
+        a {
+            color: #8b6f47;
+            text-decoration: none;
+            transition: color 0.3s ease, border-bottom 0.3s ease;
+            border-bottom: 1px dotted #8b6f47;
+        }
+        a:hover {
+            color: #6b4e31;
+            border-bottom: 1px solid #6b4e31;
+        }
+        .toc {
+            background-color: #f9f6f1;
+            padding: 25px;
+            margin-bottom: 50px;
+            border-radius: 8px;
+            border: 1px solid #e6d9c6;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+            font-size: 1.8em;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .toc li {
+            margin: 12px 0;
+            font-size: 1.1em;
+        }
+        .section {
+            margin-bottom: 50px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 0.95em;
+            color: #6b4e31;
+            padding-top: 25px;
+            border-top: 1px solid #e6d9c6;
+            font-style: italic;
+        }
+        strong {
+            color: #1a252f;
+        }
+        pre {
+            background-color: #4a3c31;
+            color: #f4ecd8;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95em;
+            margin: 15px 0;
+            border: 1px solid #6a5c51;
+        }
+        code {
+            background-color: #f9f6f1;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #8b6f47;
+        }
+        .code-comment { color: #b0a498; }
+        .code-string { color: #a3e88d; }
+        .code-keyword { color: #ff79c6; }
+        .code-function { color: #82aaff; }
+        .code-constant { color: #f78c6c; }
+        @media print {
+            body { background: #fff; }
+            .container { box-shadow: none; border: none; }
+            pre { background-color: #e8ecef; color: #2a2a2a; border: 1px solid #ced4da; }
+            .code-comment { color: #6c757d; }
+            .code-string { color: #28a745; }
+            .code-keyword { color: #dc3545; }
+            .code-function { color: #007bff; }
+            .code-constant { color: #fd7e14; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>SAMS™ Smart Audit Management System</h1>
+        <h2>Technical Blueprint & Developer Guide</h2>
+        <p><strong>© 2025 Fana Siyasanga Qhawe Mgengo. All Rights Reserved.</strong></p>
+
+        <div class="toc">
+            <h2>Table of Contents</h2>
+            <ul>
+                <li><a href="#overview--objectives">1. Overview & Objectives</a></li>
+                <li><a href="#system-architecture--tech-stack">2. System Architecture & Tech Stack</a></li>
+                <li><a href="#core-modules--components">3. Core Modules & Components</a>
+                    <ul>
+                        <li><a href="#compliance-budget--procurement-modules">3.1 Compliance, Budget & Procurement Modules</a></li>
+                        <li><a href="#audit-readiness--reporting-module">3.2 Audit Readiness & Reporting Module</a></li>
+                        <li><a href="#aiml--predictive-analytics">3.3 AI/ML & Predictive Analytics</a></li>
+                        <li><a href="#eureka-algorithm-the-proprietary-edge">3.4 Eureka Algorithm: The Proprietary Edge</a></li>
+                    </ul>
+                </li>
+                <li><a href="#data-integration--multimodal-inputs">4. Data Integration & Multimodal Inputs</a></li>
+                <li><a href="#deployment-devops--scalability">5. Deployment, DevOps & Scalability</a></li>
+                <li><a href="#security--data-protection">6. Security & Data Protection</a></li>
+                <li><a href="#code-samples--implementation-details">7. Code Samples & Implementation Details</a></li>
+                <li><a href="#conclusion">8. Conclusion</a></li>
+            </ul>
+        </div>
+
+        <div id="overview--objectives" class="section">
+            <h2>1. Overview & Objectives</h2>
+            <p>The SAMS™ Smart Audit Management System redefines municipal audit processes in South Africa through the seamless integration of artificial intelligence, machine learning, and real-time analytics. This blueprint enhances the system with cutting-edge technologies, maintaining its commitment to transforming compliance and financial governance.</p>
+            <p><strong>Objectives:</strong></p>
+            <ul>
+                <li>Harness advanced AI to convert raw data into actionable insights, enabling proactive decision-making.</li>
+                <li>Integrate diverse, multimodal data streams for a holistic analysis of municipal operations.</li>
+                <li>Refine proprietary algorithms to deliver unparalleled performance and accuracy.</li>
+            </ul>
+            <p><strong>Code Sample:</strong> Initializing a Next.js dashboard for real-time data visualization.</p>
+            <pre><code><span class="code-keyword">import</span> { <span class="code-constant">useEffect</span> } <span class="code-keyword">from</span> <span class="code-string">'next'</span>;
+
+<span class="code-keyword">const</span> <span class="code-function">Dashboard</span> = () => {
+  <span class="code-function">useEffect</span>(() => {
+    console.<span class="code-function">log</span>(<span class="code-string">"Initializing SAMS™ Dashboard with real-time data."</span>);
+  }, []);
+  <span class="code-keyword">return</span> <<span class="code-keyword">div</span>>Welcome to SAMS™ Dashboard</<span class="code-keyword">div</span>>;
+};
+<span class="code-keyword">export</span> <span class="code-keyword">default</span> <span class="code-constant">Dashboard</span>;
+</code></pre>
+        </div>
+
+        <div id="system-architecture--tech-stack" class="section">
+            <h2>2. System Architecture & Tech Stack</h2>
+            <p>SAMS™ employs a microservices architecture, orchestrated via Kubernetes, ensuring modularity, resilience, and scalability. The tech stack is meticulously curated to balance performance, security, and developer accessibility.</p>
+            <p><strong>Updated Tech Stack:</strong></p>
+            <ul>
+                <li><strong>Frontend:</strong> Next.js with Material-UI for dynamic, elegant user interfaces.</li>
+                <pre><code><span class="code-comment">// pages/index.js</span>
+<span class="code-keyword">import</span> { <span class="code-constant">Button</span> } <span class="code-keyword">from</span> <span class="code-string">'@mui/material'</span>;
+<span class="code-keyword">export</span> <span class="code-keyword">default</span> <span class="code-keyword">function</span> <span class="code-function">Home</span>() {
+  <span class="code-keyword">return</span> <<span class="code-constant">Button</span> variant=<span class="code-string">"contained"</span>>Load SAMS™ Dashboard</<span class="code-constant">Button</span>>;
+}
+</code></pre>
+                <li><strong>Backend:</strong> Node.js (Express.js) for high-throughput APIs and Python (FastAPI) for AI-driven services.</li>
+                <pre><code><span class="code-comment">// Express.js API</span>
+<span class="code-keyword">const</span> express = <span class="code-function">require</span>(<span class="code-string">'express'</span>);
+<span class="code-keyword">const</span> app = <span class="code-function">express</span>();
+app.<span class="code-function">get</span>(<span class="code-string">'/api/status'</span>, (req, res) => res.<span class="code-function">json</span>({ status: <span class="code-string">'Running'</span> }));
+app.<span class="code-function">listen</span>(<span class="code-constant">3000</span>, () => console.<span class="code-function">log</span>(<span class="code-string">'API running on port 3000'</span>));
+</code></pre>
+                <pre><code><span class="code-comment"># FastAPI microservice</span>
+<span class="code-keyword">from</span> fastapi <span class="code-keyword">import</span> <span class="code-constant">FastAPI</span>
+app = <span class="code-constant">FastAPI</span>()
+@app.<span class="code-function">get</span>(<span class="code-string">"/ai/status"</span>)
+<span class="code-keyword">async</span> <span class="code-keyword">def</span> <span class="code-function">ai_status</span>():
+    <span class="code-keyword">return</span> {<span class="code-string">"status"</span>: <span class="code-string">"AI service active"</span>}
+</code></pre>
+                <li><strong>Database:</strong> PostgreSQL for structured data, MongoDB for unstructured data, Redis for caching.</li>
+                <pre><code><span class="code-comment">-- PostgreSQL table creation</span>
+<span class="code-keyword">CREATE TABLE</span> transactions (
+    id <span class="code-keyword">SERIAL PRIMARY KEY</span>,
+    amount <span class="code-keyword">DECIMAL</span>,
+    date <span class="code-keyword">TIMESTAMP</span>
+);
+</code></pre>
+                <pre><code><span class="code-comment">// Redis caching</span>
+<span class="code-keyword">const</span> redis = <span class="code-function">require</span>(<span class="code-string">'redis'</span>);
+<span class="code-keyword">const</span> client = redis.<span class="code-function">createClient</span>();
+client.<span class="code-function">set</span>(<span class="code-string">'key'</span>, <span class="code-string">'value'</span>, (err) => console.<span class="code-function">log</span>(<span class="code-string">'Cached'</span>));
+</code></pre>
+                <li><strong>AI/ML:</strong> TensorFlow, PyTorch, and Transformers for advanced analytics.</li>
+                <pre><code><span class="code-keyword">import</span> tensorflow <span class="code-keyword">as</span> tf
+model = tf.keras.<span class="code-function">Sequential</span>([tf.keras.layers.<span class="code-function">Dense</span>(<span class="code-constant">64</span>, activation=<span class="code-string">'relu'</span>)])
+</code></pre>
+                <li><strong>DevOps:</strong> Kubernetes, ArgoCD, and Terraform for seamless deployment.</li>
+                <pre><code><span class="code-comment"># Kubernetes pod</span>
+apiVersion: <span class="code-string">v1</span>
+kind: <span class="code-constant">Pod</span>
+metadata:
+  name: sams-pod
+spec:
+  containers:
+  - name: sams
+    image: sams:latest
+</code></pre>
+            </ul>
+        </div>
+
+        <div id="core-modules--components" class="section">
+            <h2>3. Core Modules & Components</h2>
+
+            <div id="compliance-budget--procurement-modules">
+                <h3>3.1 Compliance, Budget & Procurement Modules</h3>
+                <ul>
+                    <li><strong>Compliance Engine:</strong> Ensures regulatory adherence with AI-driven anomaly detection.</li>
+                    <pre><code><span class="code-keyword">from</span> sklearn.ensemble <span class="code-keyword">import</span> <span class="code-constant">IsolationForest</span>
+data = [[<span class="code-constant">100</span>], [<span class="code-constant">200</span>], [<span class="code-constant">10000</span>]]
+clf = <span class="code-constant">IsolationForest</span>()
+<span class="code-function">print</span>(clf.<span class="code-function">fit_predict</span>(data))  <span class="code-comment"># -1 for anomalies</span>
+</code></pre>
+                    <li><strong>Budget Monitoring & Forecasting:</strong> Tracks expenditures with Prophet-based predictions.</li>
+                    <pre><code><span class="code-keyword">from</span> fbprophet <span class="code-keyword">import</span> <span class="code-constant">Prophet</span>
+df = pd.<span class="code-function">DataFrame</span>({<span class="code-string">'ds'</span>: [<span class="code-string">'2023-01-01'</span>], <span class="code-string">'y'</span>: [<span class="code-constant">100</span>]})
+m = <span class="code-constant">Prophet</span>()
+m.<span class="code-function">fit</span>(df)
+</code></pre>
+                    <li><strong>Procurement Compliance:</strong> Validates SCM compliance with automated checks.</li>
+                    <pre><code><span class="code-keyword">const</span> <span class="code-function">checkProcurement</span> = (data) => data.amount < <span class="code-constant">50000</span> ? <span class="code-string">'Approved'</span> : <span class="code-string">'Review'</span>;
+console.<span class="code-function">log</span>(<span class="code-function">checkProcurement</span>({ amount: <span class="code-constant">1000</span> }));
+</code></pre>
+                </ul>
+            </div>
+
+            <div id="audit-readiness--reporting-module">
+                <h3>3.2 Audit Readiness & Reporting Module</h3>
+                <ul>
+                    <li><strong>NLP Analysis:</strong> Employs BERT for intelligent document processing.</li>
+                    <pre><code><span class="code-keyword">from</span> transformers <span class="code-keyword">import</span> <span class="code-constant">BertTokenizer</span>
+tokenizer = <span class="code-constant">BertTokenizer</span>.<span class="code-function">from_pretrained</span>(<span class="code-string">'bert-base-uncased'</span>)
+tokens = <span class="code-function">tokenizer</span>(<span class="code-string">"Audit report"</span>, return_tensors=<span class="code-string">'pt'</span>)
+</code></pre>
+                    <li><strong>Report Generation:</strong> Produces AGSA-compliant reports automatically.</li>
+                    <pre><code><span class="code-keyword">def</span> <span class="code-function">generate_report</span>(data):
+    <span class="code-keyword">return</span> <span class="code-string">f"Audit Summary: {data['status']}"</span>
+<span class="code-function">print</span>(<span class="code-function">generate_report</span>({<span class="code-string">'status'</span>: <span class="code-string">'Compliant'</span>}))
+</code></pre>
+                </ul>
+            </div>
+
+            <div id="aiml--predictive-analytics">
+                <h3>3.3 AI/ML & Predictive Analytics</h3>
+                <ul>
+                    <li><strong>Advanced Models:</strong> Utilizes Graph Neural Networks for fraud detection.</li>
+                    <pre><code><span class="code-keyword">import</span> torch_geometric <span class="code-keyword">as</span> pyg
+<span class="code-keyword">class</span> <span class="code-function">GNN</span>(torch.nn.<span class="code-constant">Module</span>):
+    <span class="code-keyword">def</span> <span class="code-function">__init__</span>(self):
+        <span class="code-keyword">super</span>().<span class="code-function">__init__</span>()
+        self.conv = pyg.nn.<span class="code-function">GCNConv</span>(<span class="code-constant">16</span>, <span class="code-constant">16</span>)
+</code></pre>
+                    <li><strong>Data Processing:</strong> Leverages Spark for large-scale data pipelines.</li>
+                    <pre><code><span class="code-keyword">from</span> pyspark.sql <span class="code-keyword">import</span> <span class="code-constant">SparkSession</span>
+spark = <span class="code-constant">SparkSession</span>.<span class="code-function">builder</span>.appName(<span class="code-string">"SAMS"</span>).<span class="code-function">getOrCreate</span>()
+df = spark.<span class="code-function">read</span>.csv(<span class="code-string">"data.csv"</span>)
+</code></pre>
+                </ul>
+            </div>
+
+            <div id="eureka-algorithm-the-proprietary-edge">
+                <h3>3.4 Eureka Algorithm: The Proprietary Edge</h3>
+                <ul>
+                    <li><strong>Hybrid Engine:</strong> Combines multiple AI techniques for superior insights.</li>
+                    <pre><code><span class="code-keyword">def</span> <span class="code-function">eureka_score</span>(data):
+    <span class="code-keyword">return</span> <span class="code-function">sum</span>(data) * <span class="code-constant">0.5</span>  <span class="code-comment"># Simplified scoring</span>
+<span class="code-function">print</span>(<span class="code-function">eureka_score</span>([<span class="code-constant">1</span>, <span class="code-constant">2</span>, <span class="code-constant">3</span>]))
+</code></pre>
+                </ul>
+            </div>
+        </div>
+
+        <div id="data-integration--multimodal-inputs" class="section">
+            <h2>4. Data Integration & Multimodal Inputs</h2>
+            <ul>
+                <li><strong>Ingestion:</strong> Apache NiFi for seamless data collection.</li>
+                <pre><code>{<span class="code-string">"processor"</span>: <span class="code-string">"GetFile"</span>, <span class="code-string">"directory"</span>: <span class="code-string">"/data"</span>}
+</code></pre>
+                <li><strong>Processing:</strong> Apache Spark for efficient data transformation.</li>
+                <pre><code>df = spark.<span class="code-function">read</span>.json(<span class="code-string">"input.json"</span>)
+df.<span class="code-function">write</span>.parquet(<span class="code-string">"output.parquet"</span>)
+</code></pre>
+                <li><strong>Storage:</strong> Data Lake with S3 integration.</li>
+                <pre><code><span class="code-keyword">import</span> boto3
+s3 = boto3.<span class="code-function">client</span>(<span class="code-string">'s3'</span>)
+s3.<span class="code-function">upload_file</span>(<span class="code-string">'data.txt'</span>, <span class="code-string">'bucket'</span>, <span class="code-string">'data.txt'</span>)
+</code></pre>
+            </ul>
+        </div>
+
+        <div id="deployment-devops--scalability" class="section">
+            <h2>5. Deployment, DevOps & Scalability</h2>
+            <ul>
+                <li><strong>CI/CD:</strong> ArgoCD for automated deployments.</li>
+                <pre><code>apiVersion: argoproj.io/v1alpha1
+kind: <span class="code-constant">Application</span>
+metadata:
+  name: sams
+spec:
+  source:
+    repoURL: <span class="code-string">'git repo'</span>
+</code></pre>
+                <li><strong>Monitoring:</strong> Prometheus for real-time system health.</li>
+                <pre><code>- job_name: <span class="code-string">'sams'</span>
+  static_configs:
+  - targets: [<span class="code-string">'localhost:9090'</span>]
+</code></pre>
+            </ul>
+        </div>
+
+        <div id="security--data-protection" class="section">
+            <h2>6. Security & Data Protection</h2>
+            <ul>
+                <li><strong>Authentication:</strong> OAuth 2.0 for secure access control.</li>
+                <pre><code><span class="code-keyword">const</span> auth = <span class="code-function">require</span>(<span class="code-string">'oauth2'</span>);
+auth.<span class="code-function">getToken</span>(<span class="code-string">'client_id'</span>, <span class="code-string">'secret'</span>);
+</code></pre>
+                <li><strong>Encryption:</strong> AES-256 for robust data protection.</li>
+                <pre><code><span class="code-keyword">from</span> cryptography.fernet <span class="code-keyword">import</span> <span class="code-constant">Fernet</span>
+key = <span class="code-constant">Fernet</span>.<span class="code-function">generate_key</span>()
+cipher = <span class="code-constant">Fernet</span>(key)
+</code></pre>
+            </ul>
+        </div>
+
+        <div id="code-samples--implementation-details" class="section">
+            <h2>7. Code Samples & Implementation Details</h2>
+            <ul>
+                <li><strong>Autoencoder:</strong> For anomaly detection in financial data.</li>
+                <pre><code><span class="code-keyword">from</span> tensorflow.keras <span class="code-keyword">import</span> layers, models
+model = models.<span class="code-function">Sequential</span>([layers.<span class="code-function">Dense</span>(<span class="code-constant">32</span>, activation=<span class="code-string">'relu'</span>)])
+</code></pre>
+                <li><strong>Reinforcement Learning Agent:</strong> Optimizes decision-making processes.</li>
+                <pre><code><span class="code-keyword">from</span> stable_baselines3 <span class="code-keyword">import</span> <span class="code-constant">PPO</span>
+model = <span class="code-constant">PPO</span>(<span class="code-string">'MlpPolicy'</span>, <span class="code-string">'env'</span>)
+</code></pre>
+            </ul>
+        </div>
+
+        <div id="conclusion" class="section">
+            <h2>8. Conclusion</h2>
+            <p>SAMS™ represents a pinnacle of technological innovation in audit management, leveraging state-of-the-art tools to deliver unparalleled efficiency and compliance for South African municipalities.</p>
+            <p><strong>Code Sample:</strong> Final system log.</p>
+            <pre><code>console.<span class="code-function">log</span>(<span class="code-string">"SAMS™ Blueprint Updated Successfully"</span>);
+</code></pre>
+        </div>
+
+        <div class="footer">
+            <p><strong>© 2025 Fana Siyasanga Qhawe Mgengo. All Rights Reserved.</strong></p>
+        </div>
+    </div>
+</body>
+</html>
